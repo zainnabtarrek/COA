@@ -1,0 +1,118 @@
+// Components used:
+//  - Full-adders: 3
+//  - 4x1 Multiplexers: 6
+//  - Xors: 3
+//  - Not: 1
+
+// Structural descriptions for full adder.
+
+module full_adder(output sum, output carry, input a, input b, input c_in);
+   // Declare wires for intermediate signals
+   wire s1, c1, c2;
+
+   // XOR gate to compute the sum bit
+   xor(s1, a, b);
+   // XOR gate to combine the previous sum and carry-in to get the final sum
+   xor(sum, s1, c_in);
+
+   // AND gate to compute the carry-out from input bits a and b
+   and(c1, a, b);
+   // AND gate to compute the carry-out from the previous sum and carry-in
+   and(c2, s1, c_in);
+   // OR gate to combine the two carry-out signals and get the final carry-out
+   or(carry, c1, c2);
+
+endmodule
+
+
+// Structural descriptions for Multiplexer .
+
+module mux(output y, input i0,  i1,  i2,  i3,  s0, s1);
+
+
+// Declare wires for intermediate signals
+   wire w1 , w2 , w3 ,w4 ;
+
+   and  (w1, i0, ~s1,~s0);
+   and  (w2 ,i1, ~s1, s0);
+   and  (w3, i2, s1, ~s0);
+   and  (w4, i3, s1, s0);
+   or   (y,w1,w2,w3,w4);
+ endmodule
+
+// description of the circuit
+module circuit (output  fa1,fa2,fa3, input s0,s1,i00,i01,i02,i03,i10,i11,i12,i13,i20,i21,i22,i23,i30,i31,i32,i33,i40,i41,i42,i43,i50,i51,i52,i53) ;
+wire carry1,carry2,carry3, nots0,XOR1,XOR2,XOR3,MUX0,MUX1,MUX2, MUX3,MUX4,MUX5;
+mux mux0 (MUX0,i00,i01,i02,i03,s0,s1);
+mux mux1 (MUX1,i10,i11,i12,i13,s0,s1);
+mux mux2(MUX2,i20,i21,i22,i23,s0,s1);
+mux mux3(MUX3,i30,i31,i32,i33,s0,s1);
+mux mux4(MUX4,i40,i41,i42,i43,s0,s1);
+mux mux5(MUX5,i50,i51,i52,i53,s0,s1);
+xor (XOR1,s1,MUX0);
+xor(XOR2,s1,MUX1);
+xor (XOR3,s1,MUX2);
+not (nots0,s0);
+full_adder FA1 (fa1,carry1,XOR1,MUX3,nots0);
+full_adder FA2 (fa2,carry2,XOR2,MUX4,carry1);
+full_adder FA3 (fa3,carry3,XOR3,MUX5,carry2);
+endmodule 
+
+
+
+module test ();
+   reg s0,s1,i00,i01,i02,i03,i10,i11,i12,i13,i20,i21,i22,i23,i30,i31,i32,i33,i40,i41,i42,i43,i50,i51,i52,i53 ;
+   wire fa1,fa2,fa3 ;
+   reg [2:0] A;
+   reg [2:0] B;
+   reg [1:0] select;
+   reg [2:0] G;
+   reg clk = 0;
+   always #5 clk = ~clk;
+   integer test_case;
+   circuit c (fa1,fa2,fa3,s0,s1,i00,i01,i02,i03,i10,i11,i12,i13,i20,i21,i22,i23,i30,i31,i32,i33,i40,i41,i42,i43,i50,i51,i52,i53);
+   
+   initial
+   begin
+      
+    
+  
+      // Provide 40 test cases
+      for (test_case = 0; test_case < 40; test_case = test_case + 1) begin
+         
+
+        // Randomize inputs
+         A = $random % 8; // 3-bit signed value
+         B = $random % 8; // 3-bit signed value
+         select = $random % 4; // 2-bit value
+         // wait time
+         #5
+         
+         // display the tests bench
+         $display("Test Case %0d:", test_case);
+         $display("A = %b, B = %b, Select = %b", A, B, select);
+         // Apply inputs
+         s1 = select[1]; s0 = select[0]; 
+         i00=A[0] ; i01=A[0]; i02=A[0] ;  i03=B[0] ;
+         i10=A[1] ; i11=A[1] ; i12=A[1] ; i13=B[1] ;
+         i20=A[2] ; i21=A[2] ; i22=A[2] ; i23=B[2]; 
+         i30=0 ; i31=B[0] ; i32=B[0] ; i33=0 ;
+         i40=0 ; i41=B[1]; i42=B[1] ; i43=1 ;
+         i50=0 ; i51=B[2] ; i52=B[2]; i53=0 ;
+         
+
+         case (select)
+            2'b00: $display("Expected G = A + 1 = %b", A + 1);
+            2'b01: $display("Expected G = A + B = %b", A + B);
+            2'b10: $display("Expected G = B - A = %b", B - A);
+            2'b11: $display("Expected G = 1 - B = %b", 1 - B);
+         endcase
+         // wait time
+         #5
+         // output
+         G[0] = fa1; G[1] = fa2; G[2] = fa3;
+         $display("Actual G = %b\n", G);
+        end
+      $finish;
+   end
+endmodule
